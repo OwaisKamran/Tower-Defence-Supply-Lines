@@ -56,8 +56,8 @@ If SFML is in another folder, add `-DSFML_DIR="<your folder>\lib\cmake\SFML"` to
 ## 2. Build
 
 ```powershell
-git clone https://github.com/<your-user>/tower-defense-supply-lines.git
-cd tower-defense-supply-lines
+git clone https://github.com/OwaisKamran/Tower-Defence-Supply-Lines.git
+cd Tower-Defence-Supply-Lines
 cmake -S . -B build -G "MinGW Makefiles"
 cmake --build build
 ```
@@ -125,7 +125,7 @@ Copy-Item C:\mingw64\bin\libstdc++-6.dll, C:\mingw64\bin\libgcc_s_seh-1.dll, C:\
 Copy these to the other PC (for example on a USB stick), keeping the same folder layout:
 
 ```
-tower-defense-supply-lines\
+Tower-Defence-Supply-Lines\
   Assets\                    pictures and font
   data\                      datasets
   build\tower_defense.exe    the game
