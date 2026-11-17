@@ -1,0 +1,45 @@
+# Edge case 1: disconnected graph.
+# Duskmoor + Fenmarsh form their own group (their only links to the rest are blocked),
+# Westgate has no roads at all, and every road to Eaglecrest is blocked.
+# Expected: a minimum spanning forest of 4 trees; 4 outposts unreachable from the Castle.
+
+CASTLE 0
+
+OUTPOSTS
+# id name         x  y  severity population
+0  Castle        19  7   0  800
+1  Ironhold      16  3   7  300
+2  Millbrook     13  7   4  420
+3  Stonebridge   16 11   6  250
+4  Duskmoor       5  7   6  270
+5  Fenmarsh       5 13   7  160
+6  Westgate       2  3   2  120
+7  Eaglecrest     6  1  10   90
+
+ROADS
+# id from to cost blocked
+0  0  1  4  0
+1  0  2  6  0
+2  1  2  3  0
+3  2  3  5  0
+4  1  3  7  0
+5  4  5  2  0
+6  3  4  3  1
+7  7  1  2  1
+8  5  2  9  1
+
+CONVOYS
+0  Wagon  10
+1  Cart    8
+2  Mule    6
+
+ITEMS
+# id name         weight value outpost
+0  Ammo_Crate     6  30  1
+1  Medkit         2  18  2
+2  Repair_Kit     4  20  3
+3  Cannon_Shells  8  40  4
+4  Medkit         2  22  5
+5  Frost_Core     5  26  6
+6  Ammo_Crate     6  35  7
+7  Repair_Kit     4  16  1

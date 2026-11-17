@@ -1,0 +1,39 @@
+#include "barrier_tower.hpp"
+
+BarrierTower::BarrierTower(sf::Vector2f pos)
+    : Tower(pos, 0.f, 0.f, 50, true, TowerType::Barrier), durability(200)
+{
+    shape.setSize(sf::Vector2f(40.f, 40.f));
+    shape.setFillColor(sf::Color(139, 69, 19));
+    shape.setOrigin({shape.getSize().x / 2.f, shape.getSize().y / 2.f});
+    shape.setPosition(position);
+}
+
+void BarrierTower::update(float deltaTime, std::vector<std::unique_ptr<Enemy>>& enemies) {
+}
+
+void BarrierTower::takeDamage(int damage) {
+    durability -= damage;
+    if (durability < 0) durability = 0;
+
+    float healthPercent = static_cast<float>(durability) / 200.f;
+    if (healthPercent > 0.6f) {
+        shape.setFillColor(sf::Color(139, 69, 19));
+    } else if (healthPercent > 0.3f) {
+        shape.setFillColor(sf::Color(160, 82, 45));
+    } else {
+        shape.setFillColor(sf::Color(205, 133, 63));
+    }
+}
+
+bool BarrierTower::isDestroyed() const {
+    return durability <= 0;
+}
+
+void BarrierTower::draw(sf::RenderWindow& window) {
+    if (baseSprite) {
+        window.draw(*baseSprite);
+    } else {
+        window.draw(shape);
+    }
+}

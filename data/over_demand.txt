@@ -1,0 +1,46 @@
+# Edge case 2: over-demand.
+# Every outpost asks for more than the convoys can carry: total demand 66 vs total capacity 27.
+# Every single item fits on at least one convoy, so only capacity limits the answer.
+# Expected: the DP still returns the best partial packing (not zero, not a failure).
+# 12 items, so the brute force can verify the answer (4^12 = 16,777,216 assignments).
+
+CASTLE 0
+
+OUTPOSTS
+# id name         x  y  severity population
+0  Castle        19  7   0  800
+1  Ironhold      16  3   7  300
+2  Millbrook     13  7   4  420
+3  Stonebridge   16 11   6  250
+4  Greywood       9  4   5  150
+5  Thornvale      9 10   3  330
+
+ROADS
+# id from to cost blocked
+0  0  1  4  0
+1  0  2  6  0
+2  1  2  3  0
+3  2  3  5  0
+4  2  4  4  0
+5  3  5  2  0
+6  4  5  7  0
+
+CONVOYS
+0  Wagon  12
+1  Cart    9
+2  Mule    6
+
+ITEMS
+# id name          weight value outpost
+0  Ammo_Crate      6  30  1
+1  Cannon_Shells   8  42  1
+2  Medkit          2  15  2
+3  Repair_Kit      4  21  2
+4  Frost_Core      5  27  3
+5  Ammo_Crate      6  29  3
+6  Cannon_Shells   8  38  4
+7  Medkit          2  13  4
+8  Repair_Kit      4  19  5
+9  Ammo_Crate      6  31  5
+10 Frost_Core      5  24  1
+11 Cannon_Shells  10  48  2

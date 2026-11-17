@@ -1,0 +1,2 @@
+# Build output (CMake build folder, compiled test runner, copied DLLs)
+build/

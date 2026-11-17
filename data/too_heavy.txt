@@ -1,0 +1,38 @@
+# Edge case 3: items too heavy for every convoy.
+# The largest convoy holds 12. Siege_Engine (15) and Ballista (13) can never be carried,
+# even though they have the highest values. They must drop out without breaking the DP.
+
+CASTLE 0
+
+OUTPOSTS
+# id name         x  y  severity population
+0  Castle        19  7   0  800
+1  Ironhold      16  3   7  300
+2  Millbrook     13  7   4  420
+3  Stonebridge   16 11   6  250
+4  Greywood       9  4   5  150
+
+ROADS
+# id from to cost blocked
+0  0  1  4  0
+1  0  2  6  0
+2  1  2  3  0
+3  2  3  5  0
+4  2  4  4  0
+5  3  4  2  0
+
+CONVOYS
+0  Wagon  12
+1  Cart   10
+2  Mule    8
+
+ITEMS
+# id name          weight value outpost
+0  Siege_Engine   15  100  1
+1  Ammo_Crate      6   30  1
+2  Medkit          2   18  2
+3  Ballista       13   90  3
+4  Repair_Kit      4   20  3
+5  Frost_Core      5   26  4
+6  Cannon_Shells   8   40  2
+7  Medkit          2   14  4
