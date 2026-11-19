@@ -38,7 +38,7 @@ Contents
 | `tower.hpp/.cpp`, `gatling_tower.*`, `artillery_tower.*`, `frost_tower.*`, `barrier_tower.*` | App | The four towers | Game only |
 | `projectile.*`, `projectile_manager.*` | App | Bullets, shells, splash damage | Game only |
 | `game_manager.hpp/.cpp` | App | Main loop, input, waves, raids, supply phase, tooltips | Game (calls Kruskal / repair / DP) |
-| `supply_overlay.hpp/.cpp` | App | Draws the simple supply map and the raid flash | UI (shows Kruskal / repair) |
+| `supply_overlay.hpp/.cpp` | App | Draws the simple supply map, the raid flash and the bomb | UI (shows Kruskal / repair) |
 | `algorithm_views.hpp/.cpp` | App | Plan Network, Raid Repair, Load Convoys views | UI (shows Kruskal, repair, DP) |
 | `hud.hpp/.cpp` | App | Top bar, sidebar, Supply box, toasts, tooltips, help | UI only |
 | `menus.hpp/.cpp` | App | Main menu (drawn in code), how to play, pause, game over | UI only |
@@ -88,7 +88,8 @@ Contents
 5. **Space** → `startNextWave` → `wavePlan(1)` → `EnemyManager::spawnWave` (8 enemies, mostly soldiers), +$100, banner.
 6. Each step, `update`:
    * `TowerManager::update` (towers shoot) → `ProjectileManager::update` (hits, splash) → `EnemyManager::update` (spawn on game time, move along the A* path) → kills give money.
-   * Every 4 s of game time (3 times): `raidRoad`
+   * 1 s before each raid: `throwBomb` – the enemy closest to the target road throws a bomb (drawn by `drawBomb`; picture only).
+   * Every 4 s of game time (3 times): `bombLands` (small explosion) and `raidRoad`
      1. `nextRaidTarget` → `SupplyNetwork::nextRoadToDestroy` (tier, distance to the A* path, id) → e.g. R4;
      2. `traceRaid` (record for view V);
      3. `SupplyNetwork::destroyRoad` → `MstPlanner::destroyRoad` (**incremental repair**: BFS sides, scan sorted list → R1) + a fresh `MstPlanner::build` for the "vs rebuild" number;
@@ -467,29 +468,32 @@ These files use SFML for windows, drawing, input and sound. They **call** `core/
 | 8 | constructor | Opens the 1280×768 window "Tower Defence: Supply Lines" at 60 FPS; the battlefield is a 960×720 view under the 48-px top bar. Loads assets and fonts, creates the HUD, connects towers to effects and sound, **loads `../data/worked_example.txt` into `SupplyNetwork`** (runs Kruskal + DP once: cost 45, value 269), sets grid textures, start (0,7) and goal (19,7), and asks A* for the first path. |
 | 52 | `run` | The main loop: input → UI animations → simulation → draw. The simulation uses a **fixed 1/60 s step**, scaled by game speed (1×/2×) and by 0.35 while a raid flash plays. It stops completely while a view, help or pause is open. Prints the FPS every 5 s. |
 | 82 | `handleInput` | Reads window events. Ignores a click that only focused the window (old bug: it placed a tower). Then handles each screen: menu (Play / How to Play / Algorithm View / Quit), how-to-play, pause, game over (R = restart) and playing. While a view is open, `D` still raids and opens the Raid view. |
-| 164 | `handleGameEvent` | Keys 1–4, Space, Esc, M, D, P, L, V, H, F, N. Mouse: Algorithms menu, view items, tower cards, speed, mute, wave button; otherwise place a tower on the clicked tile. Esc first closes the Algorithms menu. |
-| 215 | `update` | One game step: towers shoot, enemies move, effects; kills give money; **raids**: one every 4 s of game time, 3 per wave (`raidRoad`); when no enemies are left the wave ends (`onWaveEnded`); lives and game over; countdown to the next wave. |
-| 251 | `updateUi` | Real-time animations: banner age, raid animation, toast age, views, sliding panels. |
-| 266 | `render` | Draws the current screen: menu, how-to-play, an algorithm view, or the battlefield + top bar + sidebar + wave button + banner + toast + tooltip + Algorithms menu + help; then pause or game-over on top. |
-| 303 | `renderBattlefield` | Grid, supply map (under towers), towers, enemies, effects, tower dots; then the range circle and the green/red placement preview for the hovered tile. |
-| 341 | `tooltipAt` | Hover text for an enemy (health, shield, speed, reward), a tower (range, rate, exact supply effect), an outpost (name, severity, population, connected?, requests/delivered, effect) or a road (id, cost, severity, status, next target). Over the sidebar it calls `sidebarTooltip`. |
-| 410 | `hudState` | Collects money, lives, wave, speed, mute, selected tower, menu state and the wave button text ("Start wave 2: …" or "Wave 2 in 5 s"). |
-| 430 | `restartGame` | Resets towers, enemies, grid, path, money ($1000), lives (20), counters, effects, and **`supplyNetwork.reset()`** (cost 45, value 269 again). |
-| 465 | `wavePlan` | Wave w: 5 + 3w enemies, about 70 % of one type (soldiers, runners, tanks, shielded in turn), every 5th wave mixed; spawn gap shrinks with w. |
-| 477 | `startNextWave` | Only when the field is clear: wave + 1, spawn the plan, +$100, reset raid timer, banner, sound. |
-| 495 | `openView` | Opens an algorithm view; the traces are built from the current network at that moment. |
-| 499 | `enemyPathTiles` | The tiles of the A* path new enemies follow. |
-| 506 | `nextRaidTarget` | Asks `SupplyNetwork::nextRoadToDestroy` with that path. |
-| 511 | `raidRoad` | **One raid**: record the raid trace (tree before the update), call `supplyNetwork.destroyRoad` (incremental repair + rebuild comparison), start the short map flash, store the trace for view V, play a sound, show a toast ("Repaired: 21 ops vs 202" / no replacement / unused road), and print the raid in the console. |
-| 542 | `onWaveEnded` | **Supply phase**: start the 6 s countdown, `runSupplyPhase()` (filter + DP), update tower effects, print the packing, toast "Supplies delivered: 269 – press L". |
-| 559 | `showToast` | Stores the text, colour and duration of the toast. |
-| 566 | `sidebarTooltip` | Tower card tooltip (cost, key, description, range) or the Supply box tooltip (tree size/cost, destroyed roads, cut-off names, last raid and its ops, next target, convoy loads, value, items left behind). |
-| 620 | `applySupplyEffects` | Each shooting tower gets the effect of the nearest outpost within 3 tiles (`supplyEffectAt`). |
-| 631 | `checkLivesLost` | Enemies at the Castle cost lives. |
-| 639 | `checkWinLoss` | 0 lives → game over. |
-| 646 | `togglePause` | Playing ↔ paused. |
-| 651 | `tryPlaceTower` | Enough money? → `TowerManager::placeTower` (A* checks the path is not blocked) → pay, apply supply effect. |
-| 663–687 | Small helpers | Window ↔ battlefield coordinates, "is the mouse over the grid?", tile from position, state change, affordability, tower cost. |
+| 164 | `handleGameEvent` | Keys 1–4, Space, Esc, M, D (an enemy bombs the next road; it is raided when the bomb lands 1 s later), P, L, V, H, F, N. Mouse: Algorithms menu, view items, tower cards, speed, mute, wave button; otherwise place a tower on the clicked tile. Esc first closes the Algorithms menu. |
+| 217 | `update` | One game step: towers shoot, enemies move, effects; kills give money; **raids**: one every 4 s of game time, 3 per wave (`raidRoad`); 1 s before each raid a bomb is thrown (`throwBomb`) and it lands at the raid (`bombLands`) – only a picture, the rule and timing do not depend on it; when no enemies are left the wave ends (`onWaveEnded`); lives and game over; countdown to the next wave. |
+| 258 | `updateUi` | Real-time animations: banner age, raid animation, toast age, views, sliding panels; the D bomb's flight (then `raidRoad`). |
+| 285 | `render` | Draws the current screen: menu, how-to-play, an algorithm view, or the battlefield + top bar + sidebar + wave button + banner + toast + tooltip + Algorithms menu + help; then pause or game-over on top. |
+| 322 | `renderBattlefield` | Grid, supply map (under towers), towers, enemies, effects, tower dots, bombs in the air; then the range circle and the green/red placement preview for the hovered tile. |
+| 366 | `tooltipAt` | Hover text for an enemy (health, shield, speed, reward), a tower (range, rate, exact supply effect), an outpost (name, severity, population, connected?, requests/delivered, effect) or a road (id, cost, severity, status, next target). Over the sidebar it calls `sidebarTooltip`. |
+| 435 | `hudState` | Collects money, lives, wave, speed, mute, selected tower, menu state and the wave button text ("Start wave 2: …" or "Wave 2 in 5 s"). |
+| 455 | `restartGame` | Resets towers, enemies, grid, path, money ($1000), lives (20), counters, effects, and **`supplyNetwork.reset()`** (cost 45, value 269 again). |
+| 492 | `wavePlan` | Wave w: 5 + 3w enemies, about 70 % of one type (soldiers, runners, tanks, shielded in turn), every 5th wave mixed; spawn gap shrinks with w. |
+| 504 | `startNextWave` | Only when the field is clear: wave + 1, spawn the plan, +$100, reset raid timer, banner, sound. |
+| 522 | `openView` | Opens an algorithm view; the traces are built from the current network at that moment. |
+| 526 | `enemyPathTiles` | The tiles of the A* path new enemies follow. |
+| 533 | `nextRaidTarget` | Asks `SupplyNetwork::nextRoadToDestroy` with that path. |
+| 538 | `raidRoad` | **One raid**: record the raid trace (tree before the update), call `supplyNetwork.destroyRoad` (incremental repair + rebuild comparison), start the short map flash, store the trace for view V, play a sound, show a toast ("Repaired: 21 ops vs 202" / no replacement / unused road), and print the raid in the console. |
+| 569 | `roadMiddle` | Pixel middle of a road (where the bomb lands). |
+| 575 | `throwBomb` | Picks the enemy closest to the road (`Ui::distanceToSegment`), or the spawn point if no enemy is out; muzzle flash and sound. |
+| 599 | `bombLands` | Small explosion and sound on the road's middle. |
+| 605 | `onWaveEnded` | **Supply phase**: start the 6 s countdown, `runSupplyPhase()` (filter + DP), update tower effects, print the packing, toast "Supplies delivered: 269 – press L". |
+| 623 | `showToast` | Stores the text, colour and duration of the toast. |
+| 630 | `sidebarTooltip` | Tower card tooltip (cost, key, description, range) or the Supply box tooltip (tree size/cost, destroyed roads, cut-off names, last raid and its ops, next target, convoy loads, value, items left behind). |
+| 684 | `applySupplyEffects` | Each shooting tower gets the effect of the nearest outpost within 3 tiles (`supplyEffectAt`). |
+| 695 | `checkLivesLost` | Enemies at the Castle cost lives. |
+| 703 | `checkWinLoss` | 0 lives → game over. |
+| 710 | `togglePause` | Playing ↔ paused. |
+| 715 | `tryPlaceTower` | Enough money? → `TowerManager::placeTower` (A* checks the path is not blocked) → pay, apply supply effect. |
+| 727–751 | Small helpers | Window ↔ battlefield coordinates, "is the mouse over the grid?", tile from position, state change, affordability, tower cost. |
 
 ### `App/supply_overlay.hpp` / `.cpp` – the simple supply map on the battlefield (shows Kruskal / incremental-repair results)
 | Line | Function | What it does |
@@ -502,6 +506,7 @@ These files use SFML for windows, drawing, input and sound. They **call** `core/
 | 114 | `drawTowerBadges` | Green dot = buff, red dot = penalty, at the tower's corner. |
 | 123 | `roadAt` | Which drawn road (tree or destroyed) is under the mouse (within 7 px). |
 | 142 | `outpostAt` | Which outpost is under the mouse. |
+| 152 | `drawBomb` | The bomb on its arc (straight line lifted by a parabola), a dotted trail, its shadow and a pulsing red ring on the target road. |
 
 ### `App/algorithm_views.hpp` / `.cpp` – the three step-by-step views (Kruskal, incremental repair, DP)
 | Line | Function | What it does |
@@ -535,7 +540,7 @@ These files use SFML for windows, drawing, input and sound. They **call** `core/
 | 208 | `drawWaveBanner` | "WAVE n – type – count" for about 2 s. |
 | 224 | `drawToast` | Rounded message at the bottom of the map that fades in and out. |
 | 235 | `drawTooltip` | Box with a title line and detail lines, kept on screen. |
-| 250–307 | `helpCloseRect`, `drawHelp` | Help panel: all keys and the map legend. |
+| 250–310 | `helpCloseRect`, `drawHelp` | Help panel: all keys and the map legend (including the bomb line). |
 
 ### `App/menus.hpp` / `.cpp` – menu, how to play, pause, game over (UI only)
 | Line | Function | What it does |

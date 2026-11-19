@@ -35,3 +35,5 @@ public:
 void drawOutpostMarker(sf::RenderTarget& target, sf::Vector2f centre, const Outpost& outpost, bool isCastle,
                        sf::Color fill, bool cutOff, float scale = 1.f);
 sf::Vector2f outpostCentre(const Outpost& outpost);
+
+void drawBomb(sf::RenderTarget& target, sf::Vector2f from, sf::Vector2f to, float t, float time);

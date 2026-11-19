@@ -270,7 +270,7 @@ void Hud::drawHelp(sf::RenderTarget& target, float openAmount, sf::Vector2f mous
         {"P  V  L", "algorithm views (or the Algorithms button)"},
         {"F", "game speed 1x / 2x"},
         {"M", "show / hide the supply map"},
-        {"D", "raid the next road now (demo)"},
+        {"D", "an enemy bombs the next road now (demo)"},
         {"N", "mute / unmute sounds"},
         {"Esc", "pause menu, or close a view"},
         {"R", "restart (on the game over screen)"},
@@ -301,6 +301,9 @@ void Hud::drawHelp(sf::RenderTarget& target, float openAmount, sf::Vector2f mous
     Ui::circle(target, {x + 15.f, y + 9.f}, 5.f, Good, sf::Color(15, 18, 26), 1.5f);
     Ui::circle(target, {x + 30.f, y + 9.f}, 5.f, Bad, sf::Color(15, 18, 26), 1.5f);
     legend("tower near a supplied / cut-off outpost");
+    Ui::circle(target, {x + 22.f, y + 9.f}, 6.f, sf::Color(38, 38, 46), sf::Color(255, 130, 60), 1.5f);
+    Ui::circle(target, {x + 26.f, y + 3.f}, 2.5f, sf::Color(255, 220, 90));
+    legend("Enemies bomb the supply roads near their path during each wave.");
     Ui::text(target, "Hover over anything for details.", {x, y + 6.f}, 13, TextDim);
 
     Ui::button(target, helpCloseRect(openAmount), "Close", mouse);

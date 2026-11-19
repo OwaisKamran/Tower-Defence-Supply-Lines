@@ -52,6 +52,14 @@ private:
     static constexpr float RAID_INTERVAL = 4.0f;
     static constexpr float RAID_SLOW_MOTION = 0.35f;
 
+    struct Bomb {
+        sf::Vector2f from;
+        float age = 0.f;
+    };
+    std::optional<Bomb> waveBomb;
+    std::optional<Bomb> manualBomb;
+    static constexpr float BOMB_FLIGHT = 1.0f;
+
     sf::Clock clock;
     sf::Clock focusClock;
     static constexpr float FOCUS_CLICK_GUARD = 0.25f;
@@ -118,6 +126,9 @@ private:
     std::vector<std::pair<int, int>> enemyPathTiles() const;
     int nextRaidTarget() const;
     void raidRoad();
+    Bomb throwBomb(int road);
+    void bombLands(int road);
+    sf::Vector2f roadMiddle(int road) const;
     void onWaveEnded();
     void applySupplyEffects();
 

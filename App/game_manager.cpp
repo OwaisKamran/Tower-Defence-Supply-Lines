@@ -176,7 +176,9 @@ void GameManager::handleGameEvent(const sf::Event& event, sf::Vector2f mouse) {
             case sf::Keyboard::Key::Space:  startNextWave(); break;
             case sf::Keyboard::Key::Escape: togglePause(); break;
             case sf::Keyboard::Key::M:      supplyOverlay.toggle(); break;
-            case sf::Keyboard::Key::D:      raidRoad(); break;
+            case sf::Keyboard::Key::D:
+                if (!manualBomb && nextRaidTarget() >= 0) manualBomb = throwBomb(nextRaidTarget());
+                break;
             case sf::Keyboard::Key::P:      openView(AlgorithmViews::Tab::Kruskal); break;
             case sf::Keyboard::Key::L:      openView(AlgorithmViews::Tab::Convoys); break;
             case sf::Keyboard::Key::V:      openView(AlgorithmViews::Tab::Raid); break;
@@ -228,9 +230,14 @@ void GameManager::update(float dt) {
 
     if (waveActive) {
         waveTime += dt;
-        if (raidsThisWave < RAIDS_PER_WAVE && waveTime >= (raidsThisWave + 1) * RAID_INTERVAL &&
-            !supplyOverlay.isRaidPlaying()) {
+        float raidDue = (raidsThisWave + 1) * RAID_INTERVAL;
+        if (raidsThisWave < RAIDS_PER_WAVE && !waveBomb && waveTime >= raidDue - BOMB_FLIGHT && nextRaidTarget() >= 0)
+            waveBomb = throwBomb(nextRaidTarget());
+        if (waveBomb) waveBomb->age += dt;
+        if (raidsThisWave < RAIDS_PER_WAVE && waveTime >= raidDue && !supplyOverlay.isRaidPlaying()) {
             raidsThisWave++;
+            waveBomb.reset();
+            bombLands(nextRaidTarget());
             raidRoad();
         }
         if (enemyManager.allEnemiesDefeated()) {
@@ -254,6 +261,18 @@ void GameManager::updateUi(float realDt) {
     supplyOverlay.update(realDt);
     toastAge += realDt;
     views.update(realDt);
+
+    if (manualBomb && currentState == GameState::PLAYING && !views.isOpen() && !helpOpen) {
+        manualBomb->age += realDt;
+        if (manualBomb->age >= BOMB_FLIGHT) {
+            manualBomb.reset();
+            int road = nextRaidTarget();
+            if (road >= 0) {
+                bombLands(road);
+                raidRoad();
+            }
+        }
+    }
 
     auto approach = [realDt](float& value, bool target) {
         value = target ? std::min(1.f, value + realDt / 0.25f) : std::max(0.f, value - realDt / 0.25f);
@@ -315,6 +334,12 @@ void GameManager::renderBattlefield(sf::Vector2f mouse) {
     enemyManager.draw(window);
     effects.draw(window);
     supplyOverlay.drawTowerBadges(window, towerManager.getTowers());
+
+    int target = nextRaidTarget();
+    if (target >= 0) {
+        if (waveBomb) drawBomb(window, waveBomb->from, roadMiddle(target), waveBomb->age / BOMB_FLIGHT, uiTime);
+        if (manualBomb) drawBomb(window, manualBomb->from, roadMiddle(target), manualBomb->age / BOMB_FLIGHT, uiTime);
+    }
 
     if (overGrid) {
         sf::Vector2i tile = worldToGrid(world);
@@ -457,6 +482,8 @@ void GameManager::restartGame() {
     waveActive = false;
     waveTime = 0.0f;
     raidsThisWave = 0;
+    waveBomb.reset();
+    manualBomb.reset();
 
     changeState(GameState::PLAYING);
     std::cout << "Game restarted" << std::endl;
@@ -539,8 +566,45 @@ void GameManager::raidRoad() {
               << (e.matchesRebuild ? " (matches rebuild)" : " (DIFFERS FROM REBUILD)") << std::endl;
 }
 
+sf::Vector2f GameManager::roadMiddle(int road) const {
+    const Dataset& data = supplyNetwork.getData();
+    const Road& r = supplyNetwork.getPlanner().getRoads()[road];
+    return (outpostCentre(data.outposts[r.from]) + outpostCentre(data.outposts[r.to])) / 2.f;
+}
+
+GameManager::Bomb GameManager::throwBomb(int road) {
+    const Dataset& data = supplyNetwork.getData();
+    const Road& r = supplyNetwork.getPlanner().getRoads()[road];
+    sf::Vector2f a = outpostCentre(data.outposts[r.from]), b = outpostCentre(data.outposts[r.to]);
+
+    sf::Vector2i spawn = grid.getStart();
+    Bomb bomb;
+    bomb.from = {spawn.x * Theme::CELL + Theme::CELL / 2.f, spawn.y * Theme::CELL + Theme::CELL / 2.f};
+    float best = 1e9f;
+    for (const auto& enemy : enemyManager.getEnemies()) {
+        float d = Ui::distanceToSegment(enemy->getPosition(), a, b);
+        if (d < best) {
+            best = d;
+            bomb.from = enemy->getPosition();
+        }
+    }
+    sf::Vector2f dir = roadMiddle(road) - bomb.from;
+    float length = std::hypot(dir.x, dir.y);
+    if (length > 0.f) dir /= length;
+    effects.muzzleFlash(bomb.from, dir, true);
+    sound.play(SoundManager::Effect::Cannon);
+    return bomb;
+}
+
+void GameManager::bombLands(int road) {
+    if (road < 0) return;
+    effects.explosion(roadMiddle(road), 34.f);
+    sound.play(SoundManager::Effect::Explosion);
+}
+
 void GameManager::onWaveEnded() {
     intermission = INTERMISSION_TIME;
+    waveBomb.reset();
     if (!supplyNetwork.isLoaded()) return;
     supplyNetwork.runSupplyPhase();
     applySupplyEffects();

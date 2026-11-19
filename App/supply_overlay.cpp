@@ -148,3 +148,24 @@ int SupplyOverlay::outpostAt(const SupplyNetwork& network, sf::Vector2f world) c
     }
     return -1;
 }
+
+void drawBomb(sf::RenderTarget& target, sf::Vector2f from, sf::Vector2f to, float t, float time) {
+    t = Ui::clamp01(t);
+    float height = std::max(50.f, 0.35f * std::hypot(to.x - from.x, to.y - from.y));
+    auto arc = [&](float s) {
+        sf::Vector2f p = from + (to - from) * s;
+        p.y -= height * 4.f * s * (1.f - s);
+        return p;
+    };
+
+    float pulse = 0.5f + 0.5f * std::sin(time * 12.f);
+    Ui::circle(target, to, 11.f + 4.f * pulse, sf::Color(255, 70, 60, 40), sf::Color(255, 70, 60, 220), 2.5f);
+
+    for (int i = 1; i <= 14; i++)
+        Ui::circle(target, arc(t * i / 14.f), 2.6f, sf::Color(170, 45, 25, static_cast<std::uint8_t>(60 + 12 * i)));
+    Ui::circle(target, from + (to - from) * t, 4.f + 3.f * t, sf::Color(0, 0, 0, 80));
+
+    sf::Vector2f p = arc(t);
+    Ui::circle(target, p, 9.f, sf::Color(38, 38, 46), sf::Color(255, 130, 60), 2.f);
+    Ui::circle(target, p + sf::Vector2f(5.f, -9.f), 2.5f + 2.f * pulse, sf::Color(255, 220, 90));
+}

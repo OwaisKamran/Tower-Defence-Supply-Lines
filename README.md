@@ -9,18 +9,20 @@ Made for the **CT-363 Design and Analysis of Algorithms** Complex Engineering Pr
 
 ![Main game screen](screenshots/main_screen.png)
 
-| Raid repaired (incremental update) | Plan Network view (Kruskal step by step) |
+| An enemy bombs a road (1 s before the raid) | Raid repaired (incremental update) |
 |---|---|
-| ![Raid](screenshots/raid_repaired.png) | ![Kruskal](screenshots/plan_network_view.png) |
-| **Raid Repair view (cut property)** | **Load Convoys view (DP result)** |
-| ![Raid view](screenshots/raid_repair_view.png) | ![Convoys](screenshots/load_convoys_view.png) |
+| ![Bomb](screenshots/bomb_in_flight.png) | ![Raid](screenshots/raid_repaired.png) |
+| **Plan Network view (Kruskal step by step)** | **Raid Repair view (cut property)** |
+| ![Kruskal](screenshots/plan_network_view.png) | ![Raid view](screenshots/raid_repair_view.png) |
+| **Load Convoys view (DP result)** | |
+| ![Convoys](screenshots/load_convoys_view.png) | |
 
 ## Features
 
 * 4 towers (Barrier, Gatling, Frost, Artillery) and 4 enemy types (Soldier, Runner, Tank, Shielded); each wave features one type, and every 5th wave is mixed.
 * A* pathfinding. A tower that would block the only path is refused, and frost makes tiles slower, so enemies may walk around them.
 * **Supply map**: blue roads = the minimum spanning tree; small dots = outposts (grey = cut off); gold keep = the Castle.
-* **Raids**: 3 roads destroyed per wave. The road flashes red, the replacement shows green, and a toast shows the work done, e.g. "Repaired: 21 ops vs 202" (incremental vs full rebuild).
+* **Raids**: 3 roads destroyed per wave. One second before each raid, the enemy closest to the road throws a bomb at it; when it lands, the road flashes red, the replacement shows green, and a toast shows the work done, e.g. "Repaired: 21 ops vs 202" (incremental vs full rebuild).
 * **Supply phase** after every wave: the DP packs the convoys. Towers near a supplied outpost fire 25 % faster (green dot); near a cut-off outpost, 25 % slower (red dot).
 * **Three algorithm views** (step by step, with play/pause/step/speed): Plan Network (Kruskal), Raid Repair (incremental update), Load Convoys (DP backtracking).
 * Hover tooltips for every road, outpost, tower and enemy; a Supply box with the key numbers.
@@ -103,7 +105,7 @@ cd build; .\astar_check.exe
 | `V` | **Raid Repair** view – the last incremental update step by step |
 | `L` | **Load Convoys** view – the DP packing |
 | **Algorithms** button | Small menu with the same three views |
-| `D` | Raid the next road now (demo; also works inside a view) |
+| `D` | An enemy bombs the next road now (demo); inside a view it raids at once |
 | `M` | Show / hide the supply map |
 | `F` or `1x` button | Game speed 1× / 2× |
 | `N` or speaker button | Mute / unmute |
